@@ -9,7 +9,7 @@ def main() -> None:
     parser.add_argument("-p", "--prompt", type=str, help="Task description")
     parser.add_argument("-m", "--model", type=str, help="Model override")
     parser.add_argument("--api-key", type=str, help="API key override")
-    parser.add_argument("--workspace", type=str, help="Workspace directory override")
+    parser.add_argument("--project-dir", "--workspace", dest="project_dir", type=str, help="Project directory to mount")
     parser.add_argument("--no-sandbox", dest="sandbox", action="store_false", help="Disable sandbox")
     args = parser.parse_args()
 
@@ -21,8 +21,8 @@ def main() -> None:
         flags.model = args.model
     if args.api_key:
         flags.gemini_api_key = args.api_key
-    if args.workspace:
-        flags.workspace_dir = args.workspace
+    if args.project_dir:
+        flags.project_dir = args.project_dir
     if args.sandbox is False:
         flags.sandbox = False
 

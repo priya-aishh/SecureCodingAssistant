@@ -1,5 +1,6 @@
 from pathlib import Path
 from config.settings import StartupFlags
+from src.environment import EnvironmentManager
 
 
 class Orchestrator:
@@ -7,12 +8,13 @@ class Orchestrator:
 
     def __init__(self, flags: StartupFlags):
         self.flags = flags
+        self.env_manager = EnvironmentManager(flags)
         self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "agent.md"
 
     def init_phase(self) -> None:
-        """Init phase: prepare workspace and settings."""
-        Path(self.flags.workspace_dir).mkdir(parents=True, exist_ok=True)
-        print(f"[Init] Workspace ready: {self.flags.workspace_dir} (Sandbox: {self.flags.sandbox})")
+        """Init phase: initialize working environment and Antigravity sandbox."""
+        self.env_manager.setup_workspace()
+        self.env_manager.print_status()
 
     def understanding_phase(self, task: str) -> str:
         """Understanding phase: analyze user task."""
