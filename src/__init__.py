@@ -1,4 +1,5 @@
 from src.orchestrator import Orchestrator
-from src.init_phase import InitClass
+from src.environment import EnvironmentManager
+from src.init_phase import InitPhase
 
-__all__ = ["Orchestrator", "InitClass"]
+__all__ = ["Orchestrator", "EnvironmentManager", "InitPhase"]
