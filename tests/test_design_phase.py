@@ -72,9 +72,9 @@ def test_design_revises_until_approved(tmp_path, monkeypatch):
     assert "Cover the failure case" in messages["generator"][1]
     assert "Design:\n# Design: first draft" in messages["reviewer"][0]
     assert len(env.capabilities) == 2
-    assert all(BuiltinTools.RUN_COMMAND not in config.enabled_tools for config in env.capabilities)
+    assert all(BuiltinTools.RUN_COMMAND in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.SEARCH_WEB not in config.enabled_tools for config in env.capabilities)
-    assert all(BuiltinTools.READ_URL_CONTENT not in config.enabled_tools for config in env.capabilities)
+    assert all(BuiltinTools.READ_URL_CONTENT in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.EDIT_FILE not in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.VIEW_FILE not in config.enabled_tools for config in env.capabilities)
     assert all(not config.enable_subagents for config in env.capabilities)

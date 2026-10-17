@@ -1,7 +1,35 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 from config.settings import StartupFlags
-from google.antigravity import LocalAgentConfig, CapabilitiesConfig, CompactionConfig
+from google.antigravity import BuiltinTools, LocalAgentConfig, CapabilitiesConfig, CompactionConfig
 from google.antigravity.hooks import policy
+from google.antigravity.types import RunCommandConfig
+
+
+def _wikipedia_url_only(args: dict) -> bool:
+    urls = args.get("urls") or [args.get("url")]
+    if not isinstance(urls, list) or not urls:
+        return False
+    if args.get("url") and args["url"] not in urls:
+        return False
+    for url in urls:
+        if not isinstance(url, str):
+            return False
+        try:
+            parsed = urlsplit(url)
+            host = parsed.hostname or ""
+            is_wikipedia = host == "wikipedia.org" or host.endswith(".wikipedia.org")
+            if (
+                parsed.scheme != "https"
+                or parsed.port is not None
+                or parsed.username
+                or parsed.password
+                or not is_wikipedia
+            ):
+                return False
+        except ValueError:
+            return False
+    return True
 
 
 class EnvironmentManager:
@@ -31,6 +59,16 @@ class EnvironmentManager:
         active_policies = []
         if self.flags.sandbox:
             active_policies.extend(policy.workspace_only([str(self.workspace_path)]))
+            active_policies.extend([
+                policy.deny(
+                    BuiltinTools.READ_URL_CONTENT.value,
+                    when=lambda args: not _wikipedia_url_only(args),
+                    reason="Only HTTPS Wikipedia URLs are allowed.",
+                ),
+                policy.allow(BuiltinTools.READ_URL_CONTENT.value),
+                policy.deny(BuiltinTools.SEARCH_WEB.value),
+                policy.allow(BuiltinTools.RUN_COMMAND.value),
+            ])
         if policies:
             active_policies.extend(policies)
 
@@ -41,7 +79,9 @@ class EnvironmentManager:
             workspaces=[str(self.workspace_path)],
             policies=active_policies,
             tools=tools,
-            capabilities=capabilities or CapabilitiesConfig(),
+            capabilities=(capabilities or CapabilitiesConfig()).model_copy(
+                update={"run_command_config": RunCommandConfig(enable_sandbox=self.flags.sandbox)}
+            ),
             compaction_config=CompactionConfig(token_threshold=self.flags.compaction_threshold),
             save_dir=str(self.artifacts_path),
         )

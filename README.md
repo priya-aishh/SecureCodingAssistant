@@ -24,6 +24,7 @@ A coding assistant built with the Google Antigravity Python SDK, featuring a det
    The understanding phase asks for a feature description and saves a short `task.md`. Use `-p "Your task description"` to provide the description on the command line.
    The design phase inspects the mounted workspace, writes `design.md`, and records up to six generator and reviewer rounds per feedback cycle in `design_review.md`. It then asks for human approval. Type `LGTM` to approve or give feedback for another revision. Without an interactive terminal, the pipeline stops with approval pending.
    Use `--compaction-threshold 50000` to compact each agent's conversation when it reaches 50,000 tokens. If omitted, the SDK uses its default threshold.
+   In sandbox mode, agents can read HTTPS Wikipedia pages with the URL reader. Other URL reads and web searches are blocked. Terminal access is enabled with the SDK's OS command sandbox requested.
 
 ## Structure
 - `config/`: Startup flags and configuration loader (`.env` + terminal args).

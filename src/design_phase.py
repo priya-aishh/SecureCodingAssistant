@@ -8,9 +8,15 @@ from config.settings import StartupFlags
 from src.environment import EnvironmentManager
 
 
-READ_ONLY_TOOLS = CapabilitiesConfig(
+DESIGN_TOOLS = CapabilitiesConfig(
     enable_subagents=False,
-    enabled_tools=[BuiltinTools.LIST_DIR, BuiltinTools.SEARCH_DIR, BuiltinTools.FIND_FILE],
+    enabled_tools=[
+        BuiltinTools.LIST_DIR,
+        BuiltinTools.SEARCH_DIR,
+        BuiltinTools.FIND_FILE,
+        BuiltinTools.READ_URL_CONTENT,
+        BuiltinTools.RUN_COMMAND,
+    ],
 )
 MAX_DESIGN_ITERATIONS = 6
 
@@ -40,11 +46,11 @@ class DesignPhase:
     ) -> tuple[str, str]:
         generator_config = self.env.build_sandbox_config(
             instructions=(self.prompts_dir / "design_generator.md").read_text(encoding="utf-8"),
-            capabilities=READ_ONLY_TOOLS,
+            capabilities=DESIGN_TOOLS,
         )
         reviewer_config = self.env.build_sandbox_config(
             instructions=(self.prompts_dir / "design_reviewer.md").read_text(encoding="utf-8"),
-            capabilities=READ_ONLY_TOOLS,
+            capabilities=DESIGN_TOOLS,
         )
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
         design_file = self.artifacts_dir / "design.md"
