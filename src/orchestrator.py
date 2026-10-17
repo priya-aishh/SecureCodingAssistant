@@ -5,6 +5,7 @@ from src.understanding_phase import UnderstandingPhase
 from src.design_phase import DesignPhase
 from src.coding_phase import CodingPhase
 from src.review_phase import ReviewPhase
+from src.commit_phase import CommitPhase
 
 
 class Orchestrator:
@@ -18,6 +19,7 @@ class Orchestrator:
         self.design_handler = DesignPhase(flags, self.env_manager)
         self.coding_handler = CodingPhase(flags, self.env_manager)
         self.review_handler = ReviewPhase(flags, self.env_manager)
+        self.commit_handler = CommitPhase(flags, self.init_phase_handler)
 
     def init_phase(self) -> None:
         """Init phase: prepare git repository/branch and verify environment status."""
@@ -41,9 +43,8 @@ class Orchestrator:
         return self.review_handler.run(requirements, design, summary)
 
     def commit_phase(self) -> None:
-        """Commit phase: push verified changes to branch."""
-        print("[Commit] Final approval and commit phase...")
-        # TODO: Deploy git push tool
+        """Commit the approved implementation and merge it into main."""
+        self.commit_handler.run()
 
     def run(self, task: str) -> None:
         """Run through all pipeline phases sequentially."""
@@ -61,4 +62,9 @@ class Orchestrator:
             if feedback.splitlines()[0].strip() == "APPROVED":
                 self.commit_phase()
                 return
-        raise RuntimeError("Code review did not approve the implementation after six rounds.")
+        print(
+            f"[Review] Six review rounds finished. Review the code changes on workspace branch "
+            f"'{self.init_phase_handler.branch_name}' and the findings in "
+            f"'{self.review_handler.artifacts_dir / 'coding_review.md'}' to take the work forward. "
+            "No commit or merge was made."
+        )

@@ -34,6 +34,7 @@ class CodingPhase:
         self.artifacts_dir = Path(flags.artifacts_dir).resolve()
         self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "coding.md"
         self.style_skill_path = Path(__file__).resolve().parent.parent / "skills" / "coding-style" / "SKILL.md"
+        self.research_skill_path = Path(__file__).resolve().parent.parent / "skills" / "wikipedia-research" / "SKILL.md"
         self.tools = CodingTools(env.workspace_path)
 
     async def _run(self, requirements: str, design: str, feedback: str = "") -> str:
@@ -45,6 +46,8 @@ class CodingPhase:
                 self.prompt_path.read_text(encoding="utf-8")
                 + "\n\n# Coding style skill\n\n"
                 + self.style_skill_path.read_text(encoding="utf-8")
+                + "\n\n# Wikipedia research skill\n\n"
+                + self.research_skill_path.read_text(encoding="utf-8")
             ),
             capabilities=CODING_TOOLS,
             tools=self.tools.agent_tools(),

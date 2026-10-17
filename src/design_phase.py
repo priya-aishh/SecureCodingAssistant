@@ -37,6 +37,7 @@ class DesignPhase:
         self.design_model = flags.design_model
         self.artifacts_dir = Path(flags.artifacts_dir).resolve()
         self.prompts_dir = Path(__file__).resolve().parent.parent / "prompts"
+        self.research_skill_path = Path(__file__).resolve().parent.parent / "skills" / "wikipedia-research" / "SKILL.md"
 
     async def _run(
         self,
@@ -45,13 +46,14 @@ class DesignPhase:
         previous_design: str = "",
         previous_review: str = "",
     ) -> tuple[str, str]:
+        research_skill = self.research_skill_path.read_text(encoding="utf-8")
         generator_config = self.env.build_sandbox_config(
-            instructions=(self.prompts_dir / "design_generator.md").read_text(encoding="utf-8"),
+            instructions=(self.prompts_dir / "design_generator.md").read_text(encoding="utf-8") + "\n\n" + research_skill,
             model=self.design_model,
             capabilities=DESIGN_TOOLS,
         )
         reviewer_config = self.env.build_sandbox_config(
-            instructions=(self.prompts_dir / "design_reviewer.md").read_text(encoding="utf-8"),
+            instructions=(self.prompts_dir / "design_reviewer.md").read_text(encoding="utf-8") + "\n\n" + research_skill,
             capabilities=DESIGN_TOOLS,
         )
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
