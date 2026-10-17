@@ -1,6 +1,7 @@
 """Environment setup and Antigravity sandbox configuration."""
 
 from pathlib import Path
+from typing import Any, Optional, Sequence
 from config.settings import StartupFlags
 from google.antigravity import LocalAgentConfig, CapabilitiesConfig
 from google.antigravity.hooks import policy
@@ -18,21 +19,36 @@ class EnvironmentManager:
         self.project_path.mkdir(parents=True, exist_ok=True)
         return self.project_path
 
-    def build_sandbox_config(self, system_instructions: str = "") -> LocalAgentConfig:
-        """Builds LocalAgentConfig mounting only the project directory with sandbox policies."""
+    def build_sandbox_config(
+        self,
+        system_instructions: str = "",
+        model: Optional[str] = None,
+        tools: Optional[list[Any]] = None,
+        policies: Optional[Sequence[Any]] = None,
+        capabilities: Optional[CapabilitiesConfig] = None,
+        **kwargs: Any,
+    ) -> LocalAgentConfig:
+        """Builds LocalAgentConfig with sandbox mounting and agent-specific tools, policies, and instructions."""
         self.setup_workspace()
 
-        policies = []
+        # Base sandbox policies: restrict file modifications to the mounted project folder
+        combined_policies = []
         if self.flags.sandbox:
-            policies = policy.workspace_only([str(self.project_path)])
+            combined_policies.extend(policy.workspace_only([str(self.project_path)]))
+
+        # Merge any additional agent-specific policies
+        if policies:
+            combined_policies.extend(policies)
 
         return LocalAgentConfig(
             system_instructions=system_instructions,
-            model=self.flags.model,
+            model=model or self.flags.model,
             api_key=self.flags.gemini_api_key or None,
             workspaces=[str(self.project_path)],
-            policies=policies,
-            capabilities=CapabilitiesConfig(),
+            policies=combined_policies,
+            tools=tools,
+            capabilities=capabilities or CapabilitiesConfig(),
+            **kwargs,
         )
 
     def print_status(self) -> None:
