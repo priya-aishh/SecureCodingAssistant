@@ -34,6 +34,7 @@ class DesignPhase:
 
     def __init__(self, flags: StartupFlags, env: EnvironmentManager):
         self.env = env
+        self.design_model = flags.design_model
         self.artifacts_dir = Path(flags.artifacts_dir).resolve()
         self.prompts_dir = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -46,6 +47,7 @@ class DesignPhase:
     ) -> tuple[str, str]:
         generator_config = self.env.build_sandbox_config(
             instructions=(self.prompts_dir / "design_generator.md").read_text(encoding="utf-8"),
+            model=self.design_model,
             capabilities=DESIGN_TOOLS,
         )
         reviewer_config = self.env.build_sandbox_config(

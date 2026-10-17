@@ -13,7 +13,7 @@ class FakeEnvironment:
         self.workspace_path = workspace
         self.capabilities = []
 
-    def build_sandbox_config(self, *, instructions, capabilities):
+    def build_sandbox_config(self, *, instructions, capabilities, model=""):
         self.capabilities.append(capabilities)
         return instructions
 
