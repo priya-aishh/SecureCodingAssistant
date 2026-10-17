@@ -14,8 +14,11 @@ def main() -> None:
     parser.add_argument("--api-key", type=str, default=os.getenv("GEMINI_API_KEY", ""), help="API key override")
     parser.add_argument("--workspace", "--project-dir", dest="workspace_dir", default=".", help="Target workspace directory")
     parser.add_argument("--artifacts-dir", default="/tmp/artifacts", help="Intermediate artifacts directory")
+    parser.add_argument("--compaction-threshold", type=int, help="Token count that triggers agent history compaction")
     parser.add_argument("--no-sandbox", dest="sandbox", action="store_false", help="Disable sandbox")
     args = parser.parse_args()
+    if args.compaction_threshold is not None and args.compaction_threshold <= 0:
+        parser.error("--compaction-threshold must be a positive integer")
 
     flags = StartupFlags(
         workspace_dir=args.workspace_dir,
@@ -23,6 +26,7 @@ def main() -> None:
         model=args.model,
         gemini_api_key=args.api_key,
         sandbox=args.sandbox,
+        compaction_threshold=args.compaction_threshold,
     )
 
     task = args.prompt or (sys.stdin.read().strip() if not sys.stdin.isatty() else "")

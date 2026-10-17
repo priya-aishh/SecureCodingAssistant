@@ -9,3 +9,4 @@ class StartupFlags:
     model: str = "gemini-2.5-flash"
     gemini_api_key: str = ""
     sandbox: bool = True
+    compaction_threshold: int | None = None

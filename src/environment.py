@@ -1,6 +1,6 @@
 from pathlib import Path
 from config.settings import StartupFlags
-from google.antigravity import LocalAgentConfig, CapabilitiesConfig
+from google.antigravity import LocalAgentConfig, CapabilitiesConfig, CompactionConfig
 from google.antigravity.hooks import policy
 
 
@@ -42,6 +42,7 @@ class EnvironmentManager:
             policies=active_policies,
             tools=tools,
             capabilities=capabilities or CapabilitiesConfig(),
+            compaction_config=CompactionConfig(token_threshold=self.flags.compaction_threshold),
             save_dir=str(self.artifacts_path),
         )
 
