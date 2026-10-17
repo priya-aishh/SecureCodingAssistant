@@ -19,8 +19,9 @@ A coding assistant built with the Google Antigravity Python SDK, featuring a det
 
 3. **Run**:
    ```bash
-   python main.py -p "Your task description"
+   python main.py
    ```
+   The understanding phase asks for a feature description and saves a short `task.md`. Use `-p "Your task description"` to provide the description on the command line.
 
 ## Structure
 - `config/`: Startup flags and configuration loader (`.env` + terminal args).

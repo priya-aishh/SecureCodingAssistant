@@ -2,6 +2,7 @@ from pathlib import Path
 from config.settings import StartupFlags
 from src.init_phase import InitPhase
 from src.environment import EnvironmentManager
+from src.understanding_phase import UnderstandingPhase
 
 
 class Orchestrator:
@@ -11,6 +12,7 @@ class Orchestrator:
         self.flags = flags
         self.init_phase_handler = InitPhase(flags)
         self.env_manager = EnvironmentManager(flags)
+        self.understanding_handler = UnderstandingPhase(flags, self.env_manager)
         self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "agent.md"
 
     def init_phase(self) -> None:
@@ -19,10 +21,8 @@ class Orchestrator:
         self.env_manager.print_status()
 
     def understanding_phase(self, task: str) -> str:
-        """Understanding phase: analyze user task."""
-        print(f"[Understanding] Task received: {task}")
-        # TODO: Deploy understanding agent
-        return task
+        """Understanding phase: gather user requirements and write to artifacts."""
+        return self.understanding_handler.run(task)
 
     def design_phase(self, task: str) -> None:
         """Design phase: plan changes."""
@@ -47,9 +47,11 @@ class Orchestrator:
 
     def run(self, task: str) -> None:
         """Run through all pipeline phases sequentially."""
+        requirements = self.understanding_phase(task)
+        if not requirements:
+            return
         self.init_phase()
-        self.understanding_phase(task)
-        self.design_phase(task)
+        self.design_phase(requirements)
         self.coding_phase()
         self.review_phase()
         self.commit_phase()
