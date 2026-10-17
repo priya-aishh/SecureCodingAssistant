@@ -13,7 +13,6 @@ class Orchestrator:
 
     def init_phase(self) -> None:
         """Init phase: initialize working environment and Antigravity sandbox."""
-        self.env_manager.setup_workspace()
         self.env_manager.print_status()
 
     def understanding_phase(self, task: str) -> str:
