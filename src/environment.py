@@ -1,15 +1,9 @@
 """Environment setup and Antigravity sandbox configuration."""
 
 from pathlib import Path
-from typing import Optional
 from config.settings import StartupFlags
-
-try:
-    from google.antigravity import LocalAgentConfig, CapabilitiesConfig
-    from google.antigravity.hooks import policy
-    ANTIGRAVITY_AVAILABLE = True
-except ImportError:
-    ANTIGRAVITY_AVAILABLE = False
+from google.antigravity import LocalAgentConfig, CapabilitiesConfig
+from google.antigravity.hooks import policy
 
 
 class EnvironmentManager:
@@ -24,15 +18,10 @@ class EnvironmentManager:
         self.project_path.mkdir(parents=True, exist_ok=True)
         return self.project_path
 
-    def build_sandbox_config(self, system_instructions: str = "") -> Optional["LocalAgentConfig"]:
+    def build_sandbox_config(self, system_instructions: str = "") -> LocalAgentConfig:
         """Builds LocalAgentConfig mounting only the project directory with sandbox policies."""
-        if not ANTIGRAVITY_AVAILABLE:
-            return None
-
         self.setup_workspace()
 
-        # In sandbox mode: file modifications are restricted strictly to the mounted project folder,
-        # and network access is restricted by default.
         policies = []
         if self.flags.sandbox:
             policies = policy.workspace_only([str(self.project_path)])
