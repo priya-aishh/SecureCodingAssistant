@@ -1,9 +1,9 @@
-from pathlib import Path
 from config.settings import StartupFlags
 from src.init_phase import InitPhase
 from src.environment import EnvironmentManager
 from src.understanding_phase import UnderstandingPhase
 from src.design_phase import DesignPhase
+from src.coding_phase import CodingPhase
 
 
 class Orchestrator:
@@ -15,7 +15,7 @@ class Orchestrator:
         self.env_manager = EnvironmentManager(flags)
         self.understanding_handler = UnderstandingPhase(flags, self.env_manager)
         self.design_handler = DesignPhase(flags, self.env_manager)
-        self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "agent.md"
+        self.coding_handler = CodingPhase(flags, self.env_manager)
 
     def init_phase(self) -> None:
         """Init phase: prepare git repository/branch and verify environment status."""
@@ -30,10 +30,9 @@ class Orchestrator:
         """Design phase: generate, review, and seek human approval."""
         return self.design_handler.run(requirements)
 
-    def coding_phase(self) -> None:
-        """Coding phase: apply code edits and run tests."""
-        print("[Coding] Execution phase...")
-        # TODO: Deploy coder agent and reviewers
+    def coding_phase(self, requirements: str, design: str) -> str:
+        """Coding phase: implement the approved design and validate it."""
+        return self.coding_handler.run(requirements, design)
 
     def review_phase(self) -> None:
         """Review phase: Gerrit-style diff review before commit."""
@@ -55,6 +54,6 @@ class Orchestrator:
         design = self.design_phase(requirements)
         if design is None:
             return
-        self.coding_phase()
+        self.coding_phase(requirements, design)
         self.review_phase()
         self.commit_phase()
