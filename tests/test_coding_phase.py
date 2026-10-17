@@ -133,10 +133,10 @@ def test_orchestrator_passes_requirements_and_design_to_coding(tmp_path):
     orchestrator.understanding_phase = lambda _: "requirements"
     orchestrator.init_phase = lambda: None
     orchestrator.design_phase = lambda _: "approved design"
-    orchestrator.coding_phase = lambda requirements, design: calls.append((requirements, design))
-    orchestrator.review_phase = lambda: None
+    orchestrator.coding_phase = lambda requirements, design, feedback: calls.append((requirements, design, feedback))
+    orchestrator.review_phase = lambda requirements, design, summary: "APPROVED"
     orchestrator.commit_phase = lambda: None
 
     orchestrator.run("feature")
 
-    assert calls == [("requirements", "approved design")]
+    assert calls == [("requirements", "approved design", "")]

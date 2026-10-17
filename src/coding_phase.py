@@ -36,7 +36,7 @@ class CodingPhase:
         self.style_skill_path = Path(__file__).resolve().parent.parent / "skills" / "coding-style" / "SKILL.md"
         self.tools = CodingTools(env.workspace_path)
 
-    async def _run(self, requirements: str, design: str) -> str:
+    async def _run(self, requirements: str, design: str, feedback: str = "") -> str:
         before = self.tools.workspace_snapshot()
         self.tools.last_python_result = None
         self.tools.last_validation_snapshot = None
@@ -54,6 +54,8 @@ class CodingPhase:
             f"User requirements:\n{requirements}\n\n"
             f"Approved design document:\n{design}"
         )
+        if feedback:
+            message += f"\n\nCode reviewer feedback on the current implementation:\n{feedback}\nRevise the existing changes accordingly."
         async with Agent(config) as agent:
             response = await agent.chat(message)
             summary = "".join([token async for token in response]).strip()
@@ -65,7 +67,7 @@ class CodingPhase:
         status = self.tools.check_workspace()
         if status["is_empty"] or not changed or not status["git_changes"]:
             raise RuntimeError("The coding agent reported completion without workspace changes.")
-        if not any(
+        if not feedback and not any(
             path.endswith(".py")
             and ("tests" in Path(path).parts or Path(path).name.startswith("test_") or path.endswith("_test.py"))
             for path in changed
@@ -106,5 +108,5 @@ class CodingPhase:
         print(f"[Coding] Changes and checks completed. Summary: {summary_file}; validation: {validation_file}")
         return summary
 
-    def run(self, requirements: str, design: str) -> str:
-        return asyncio.run(self._run(requirements, design))
+    def run(self, requirements: str, design: str, feedback: str = "") -> str:
+        return asyncio.run(self._run(requirements, design, feedback))

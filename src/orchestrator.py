@@ -4,6 +4,7 @@ from src.environment import EnvironmentManager
 from src.understanding_phase import UnderstandingPhase
 from src.design_phase import DesignPhase
 from src.coding_phase import CodingPhase
+from src.review_phase import ReviewPhase
 
 
 class Orchestrator:
@@ -16,6 +17,7 @@ class Orchestrator:
         self.understanding_handler = UnderstandingPhase(flags, self.env_manager)
         self.design_handler = DesignPhase(flags, self.env_manager)
         self.coding_handler = CodingPhase(flags, self.env_manager)
+        self.review_handler = ReviewPhase(flags, self.env_manager)
 
     def init_phase(self) -> None:
         """Init phase: prepare git repository/branch and verify environment status."""
@@ -30,15 +32,13 @@ class Orchestrator:
         """Design phase: generate, review, and seek human approval."""
         return self.design_handler.run(requirements)
 
-    def coding_phase(self, requirements: str, design: str) -> str:
+    def coding_phase(self, requirements: str, design: str, feedback: str = "") -> str:
         """Coding phase: implement the approved design and validate it."""
-        return self.coding_handler.run(requirements, design)
+        return self.coding_handler.run(requirements, design, feedback)
 
-    def review_phase(self) -> None:
-        """Review phase: Gerrit-style diff review before commit."""
-        # TODO: Render code diff like Gerrit, collect user review comments,
-        # and check for LGTM approval (if not LGTM, loop back to understanding phase).
-        pass
+    def review_phase(self, requirements: str, design: str, summary: str) -> str:
+        """Have an independent agent review the implementation."""
+        return self.review_handler.run(requirements, design, summary)
 
     def commit_phase(self) -> None:
         """Commit phase: push verified changes to branch."""
@@ -54,6 +54,11 @@ class Orchestrator:
         design = self.design_phase(requirements)
         if design is None:
             return
-        self.coding_phase(requirements, design)
-        self.review_phase()
-        self.commit_phase()
+        feedback = ""
+        for _ in range(6):
+            summary = self.coding_phase(requirements, design, feedback)
+            feedback = self.review_phase(requirements, design, summary)
+            if feedback.splitlines()[0].strip() == "APPROVED":
+                self.commit_phase()
+                return
+        raise RuntimeError("Code review did not approve the implementation after six rounds.")
