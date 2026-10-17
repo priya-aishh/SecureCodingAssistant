@@ -25,6 +25,7 @@ class EnvironmentManager:
         model: str = "",
         tools: list = None,
         policies: list = None,
+        capabilities: CapabilitiesConfig = None,
     ) -> LocalAgentConfig:
         """Configures sandbox mounting for the target workspace and intermediate artifacts."""
         active_policies = []
@@ -40,7 +41,7 @@ class EnvironmentManager:
             workspaces=[str(self.workspace_path)],
             policies=active_policies,
             tools=tools,
-            capabilities=CapabilitiesConfig(),
+            capabilities=capabilities or CapabilitiesConfig(),
             save_dir=str(self.artifacts_path),
         )
 
