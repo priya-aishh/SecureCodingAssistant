@@ -1,6 +1,6 @@
 from pathlib import Path
 from config.settings import StartupFlags
-from src.environment import EnvironmentManager
+from src.init_phase import InitClass
 
 
 class Orchestrator:
@@ -8,12 +8,12 @@ class Orchestrator:
 
     def __init__(self, flags: StartupFlags):
         self.flags = flags
-        self.env_manager = EnvironmentManager(flags)
+        self.init_class = InitClass(flags)
         self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "agent.md"
 
     def init_phase(self) -> None:
-        """Init phase: initialize working environment and Antigravity sandbox."""
-        self.env_manager.print_status()
+        """Init phase: prepare workspace, git repo/branch, and sandbox."""
+        self.init_class.run()
 
     def understanding_phase(self, task: str) -> str:
         """Understanding phase: analyze user task."""
