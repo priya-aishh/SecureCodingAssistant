@@ -3,6 +3,7 @@ from config.settings import StartupFlags
 from src.init_phase import InitPhase
 from src.environment import EnvironmentManager
 from src.understanding_phase import UnderstandingPhase
+from src.design_phase import DesignPhase
 
 
 class Orchestrator:
@@ -13,6 +14,7 @@ class Orchestrator:
         self.init_phase_handler = InitPhase(flags)
         self.env_manager = EnvironmentManager(flags)
         self.understanding_handler = UnderstandingPhase(flags, self.env_manager)
+        self.design_handler = DesignPhase(flags, self.env_manager)
         self.prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "agent.md"
 
     def init_phase(self) -> None:
@@ -24,10 +26,9 @@ class Orchestrator:
         """Understanding phase: gather user requirements and write to artifacts."""
         return self.understanding_handler.run(task)
 
-    def design_phase(self, task: str) -> None:
-        """Design phase: plan changes."""
-        print("[Design] Planning phase...")
-        # TODO: Deploy planning and critic agents
+    def design_phase(self, requirements: str) -> str | None:
+        """Design phase: generate, review, and seek human approval."""
+        return self.design_handler.run(requirements)
 
     def coding_phase(self) -> None:
         """Coding phase: apply code edits and run tests."""
@@ -51,7 +52,9 @@ class Orchestrator:
         if not requirements:
             return
         self.init_phase()
-        self.design_phase(requirements)
+        design = self.design_phase(requirements)
+        if design is None:
+            return
         self.coding_phase()
         self.review_phase()
         self.commit_phase()

@@ -22,9 +22,10 @@ A coding assistant built with the Google Antigravity Python SDK, featuring a det
    python main.py
    ```
    The understanding phase asks for a feature description and saves a short `task.md`. Use `-p "Your task description"` to provide the description on the command line.
+   The design phase inspects the mounted workspace, writes `design.md`, and records up to six generator and reviewer rounds per feedback cycle in `design_review.md`. It then asks for human approval. Type `LGTM` to approve or give feedback for another revision. Without an interactive terminal, the pipeline stops with approval pending.
 
 ## Structure
 - `config/`: Startup flags and configuration loader (`.env` + terminal args).
 - `prompts/`: Markdown system prompts for agents.
-- `src/orchestrator.py`: Deterministic phase controller (Init, Understanding, Design, Coding, Commit).
+- `src/orchestrator.py`: Deterministic phase controller (Understanding, Init, Design, Coding, Commit).
 - `main.py`: Command line interface.
