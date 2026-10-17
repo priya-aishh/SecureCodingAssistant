@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secure-coding-assistant"
+version = "0.1.0"
+description = "Secure Two-Phase Coding Agent built with Google Antigravity Python SDK"
+authors = [{ name = "Antigravity Developer" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-antigravity>=0.1.22",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+coding-agent = "main:main"

@@ -1,0 +1,35 @@
+# Environments & Secrets
+.env
+*.env.local
+*.key
+*.pem
+credentials.json
+service-account*.json
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Logs & Audit records
+logs/
+audit_logs/
+*.log
+
+# OS & Editor
+.DS_Store
+.idea/
+.vscode/
