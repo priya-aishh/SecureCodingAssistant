@@ -1,5 +1,6 @@
 """Commit reviewed changes and fast-forward main to the task branch."""
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -23,9 +24,18 @@ class CommitPhase:
         branch = self.init_phase.branch_name
         if not branch or self._git("branch", "--show-current") != branch:
             raise RuntimeError("The task branch is not checked out; refusing to commit.")
-        paths = ["."]
-        if self.artifacts != self.workspace and self.artifacts.is_relative_to(self.workspace):
-            paths.append(f":(exclude){self.artifacts.relative_to(self.workspace).as_posix()}/**")
+        if self._git("diff", "--cached", "--name-only"):
+            raise RuntimeError("Unexpected staged changes exist; refusing to commit.")
+        validation = json.loads((self.artifacts / "coding_validation.json").read_text(encoding="utf-8"))
+        if not validation["python_checks"]["passed"]:
+            raise RuntimeError("Python checks have not passed; refusing to commit.")
+        paths = validation["changed_files"]
+        if not paths or any(
+            not (self.workspace / path).resolve().is_relative_to(self.workspace)
+            or (self.workspace / path).resolve().is_relative_to(self.artifacts)
+            for path in paths
+        ):
+            raise RuntimeError("The validated file list is missing or outside the workspace.")
         self._git("add", "-A", "--", *paths)
         staged = subprocess.run(
             ["git", "diff", "--cached", "--quiet"], cwd=self.workspace, check=False

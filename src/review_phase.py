@@ -2,12 +2,14 @@
 
 import asyncio
 import difflib
+import json
 import subprocess
 from pathlib import Path
 
 from google.antigravity import Agent, BuiltinTools, CapabilitiesConfig
 
 from config.settings import StartupFlags
+from src.agent_output import collect_response
 from src.environment import EnvironmentManager
 
 
@@ -37,8 +39,10 @@ class ReviewPhase:
 
     def diff(self) -> str:
         """Include tracked changes and new files without modifying the Git index."""
-        paths = ["."]
-        if self.artifacts_dir != self.workspace and self.artifacts_dir.is_relative_to(self.workspace):
+        validation_file = self.artifacts_dir / "coding_validation.json"
+        validation = json.loads(validation_file.read_text(encoding="utf-8")) if validation_file.exists() else {}
+        paths = validation.get("changed_files") or ["."]
+        if paths == ["."] and self.artifacts_dir != self.workspace and self.artifacts_dir.is_relative_to(self.workspace):
             artifact_path = self.artifacts_dir.relative_to(self.workspace).as_posix()
             paths.append(f":(exclude){artifact_path}/**")
         try:
@@ -78,6 +82,7 @@ class ReviewPhase:
         config = self.env.build_sandbox_config(
             instructions=self.prompt_path.read_text(encoding="utf-8"),
             capabilities=REVIEW_TOOLS,
+            tool_log_phase="Code reviewer",
         )
         message = (
             f"Mounted workspace: {self.workspace}\n\n"
@@ -87,9 +92,9 @@ class ReviewPhase:
             f"Host-side coding validation:\n{validation}\n\n"
             f"Full workspace diff:\n{diff}"
         )
+        print("[Review] Checking the code changes against the approved design...", flush=True)
         async with Agent(config) as agent:
-            response = await agent.chat(message)
-            review = "".join([token async for token in response]).strip()
+            review = await collect_response(agent, message, "Code reviewer")
         if not review:
             raise RuntimeError("The code reviewer returned an empty response.")
         with (self.artifacts_dir / "coding_review.md").open("a", encoding="utf-8") as log:

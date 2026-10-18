@@ -7,6 +7,7 @@ from pathlib import Path
 from google.antigravity import Agent, BuiltinTools, CapabilitiesConfig
 
 from config.settings import StartupFlags
+from src.agent_output import collect_response
 from src.coding_tools import CodingTools
 from src.environment import EnvironmentManager
 
@@ -38,6 +39,7 @@ class CodingPhase:
         self.tools = CodingTools(env.workspace_path)
 
     async def _run(self, requirements: str, design: str, feedback: str = "") -> str:
+        print("[Coding] Implementing the approved design...", flush=True)
         before = self.tools.workspace_snapshot()
         self.tools.last_python_result = None
         self.tools.last_validation_snapshot = None
@@ -51,6 +53,7 @@ class CodingPhase:
             ),
             capabilities=CODING_TOOLS,
             tools=self.tools.agent_tools(),
+            tool_log_phase="Coding",
         )
         message = (
             f"Mounted workspace: {self.env.workspace_path}\n\n"
@@ -60,8 +63,7 @@ class CodingPhase:
         if feedback:
             message += f"\n\nCode reviewer feedback on the current implementation:\n{feedback}\nRevise the existing changes accordingly."
         async with Agent(config) as agent:
-            response = await agent.chat(message)
-            summary = "".join([token async for token in response]).strip()
+            summary = await collect_response(agent, message, "Coding")
 
         if not summary:
             raise RuntimeError("The coding agent returned an empty response.")
@@ -98,12 +100,15 @@ class CodingPhase:
             raise RuntimeError("The unit-test run did not include the changed tests.")
 
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
+        reviewed_files = self.tools.changed_files(self.artifacts_dir)
+        if not reviewed_files:
+            raise RuntimeError("No source changes are available for review.")
         summary_file = self.artifacts_dir / "coding_summary.md"
         summary_file.write_text(summary + "\n", encoding="utf-8")
         validation_file = self.artifacts_dir / "coding_validation.json"
         validation_file.write_text(
             json.dumps(
-                {"changed_files": sorted(changed), "workspace": status, "python_checks": self.tools.last_python_result},
+                {"changed_files": reviewed_files, "workspace": status, "python_checks": self.tools.last_python_result},
                 indent=2,
             ) + "\n",
             encoding="utf-8",

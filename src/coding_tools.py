@@ -24,7 +24,7 @@ class CodingTools:
         """Capture file names, sizes, and modification times for change checks."""
         snapshot = {}
         for directory, subdirs, files in os.walk(self.workspace):
-            subdirs[:] = [name for name in subdirs if name not in {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", "dist", "build"}]
+            subdirs[:] = [name for name in subdirs if name not in {".git", ".venv", "venv", "env", "node_modules", "__pycache__", ".pytest_cache", "dist", "build"}]
             for name in files:
                 path = Path(directory) / name
                 try:
@@ -52,6 +52,25 @@ class CodingTools:
             changes = []
             git_available = False
         return {"is_empty": file_count == 0, "file_count": file_count, "git_available": git_available, "git_changes": changes[:50]}
+
+    def changed_files(self, artifacts_dir: Path | None = None) -> list[str]:
+        """List all tracked edits and new files on the task branch."""
+        has_head = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"], cwd=self.workspace, capture_output=True
+        ).returncode == 0
+        commands = (["git", "diff", "HEAD" if has_head else "--cached", "--name-only", "-z"],
+                    ["git", "ls-files", "--others", "--exclude-standard", "-z"])
+        files = set()
+        for command in commands:
+            result = subprocess.run(command, cwd=self.workspace, capture_output=True, check=True)
+            files.update(path.decode("utf-8") for path in result.stdout.split(b"\0") if path)
+        return sorted(
+            path for path in files
+            if "__pycache__" not in Path(path).parts
+            and Path(path).suffix not in {".pyc", ".pyo"}
+            and not (self.workspace / path).resolve().is_relative_to(self.workspace / ".venv")
+            and not (artifacts_dir and (self.workspace / path).resolve().is_relative_to(artifacts_dir.resolve()))
+        )
 
     def _paths(self, names: list[str]) -> list[str]:
         paths = []

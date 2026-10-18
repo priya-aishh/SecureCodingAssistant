@@ -1,10 +1,16 @@
 import asyncio
+import shutil
 import sys
 from pathlib import Path
 
 from google.antigravity import Agent, BuiltinTools, CapabilitiesConfig
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.rule import Rule
+from rich.text import Text
 
 from config.settings import StartupFlags
+from src.agent_output import collect_response
 from src.environment import EnvironmentManager
 
 
@@ -14,6 +20,7 @@ DESIGN_TOOLS = CapabilitiesConfig(
         BuiltinTools.LIST_DIR,
         BuiltinTools.SEARCH_DIR,
         BuiltinTools.FIND_FILE,
+        BuiltinTools.VIEW_FILE,
         BuiltinTools.READ_URL_CONTENT,
         BuiltinTools.RUN_COMMAND,
     ],
@@ -21,23 +28,25 @@ DESIGN_TOOLS = CapabilitiesConfig(
 MAX_DESIGN_ITERATIONS = 6
 
 
-async def _ask(agent: Agent, message: str) -> str:
-    response = await agent.chat(message)
-    text = "".join([token async for token in response]).strip()
-    if not text:
-        raise RuntimeError("A design agent returned an empty response.")
-    return text
-
-
 class DesignPhase:
     """Generate and review designs until the user approves one."""
 
     def __init__(self, flags: StartupFlags, env: EnvironmentManager):
         self.env = env
+        self.console = Console(width=min(shutil.get_terminal_size((100, 24)).columns, 110))
+        self.draft_number = 0
+        self.review_started = False
         self.design_model = flags.design_model
         self.artifacts_dir = Path(flags.artifacts_dir).resolve()
         self.prompts_dir = Path(__file__).resolve().parent.parent / "prompts"
         self.research_skill_path = Path(__file__).resolve().parent.parent / "skills" / "wikipedia-research" / "SKILL.md"
+
+    def _show_document(self, title: str, content: str, path: Path, color: str) -> None:
+        self.console.print()
+        self.console.print(Rule(title, style=color))
+        self.console.print(Markdown(content))
+        self.console.print(Text(f"Saved to {path}", style="dim"))
+        self.console.print()
 
     async def _run(
         self,
@@ -51,16 +60,19 @@ class DesignPhase:
             instructions=(self.prompts_dir / "design_generator.md").read_text(encoding="utf-8") + "\n\n" + research_skill,
             model=self.design_model,
             capabilities=DESIGN_TOOLS,
+            tool_log_phase="Design generator",
         )
         reviewer_config = self.env.build_sandbox_config(
             instructions=(self.prompts_dir / "design_reviewer.md").read_text(encoding="utf-8") + "\n\n" + research_skill,
             capabilities=DESIGN_TOOLS,
+            tool_log_phase="Design reviewer",
         )
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
         design_file = self.artifacts_dir / "design.md"
         review_file = self.artifacts_dir / "design_review.md"
-        if not review_file.exists():
+        if not self.review_started:
             review_file.write_text("# Design Reviews\n", encoding="utf-8")
+            self.review_started = True
         message = (
             f"Mounted workspace: {self.env.workspace_path}\n"
             f"Requirements:\n{requirements}"
@@ -72,20 +84,39 @@ class DesignPhase:
                 f"\n\nUser feedback:\n{feedback}"
             )
 
+        self.console.print(Text(f"[Design] Starting generator and reviewer loop (up to {MAX_DESIGN_ITERATIONS} rounds).", style="cyan"))
         async with Agent(generator_config) as generator, Agent(reviewer_config) as reviewer:
-            for iteration in range(1, MAX_DESIGN_ITERATIONS + 1):
-                print(f"[Design] Draft {iteration}")
-                design = await _ask(generator, message)
+            for _ in range(MAX_DESIGN_ITERATIONS):
+                self.draft_number += 1
+                number = self.draft_number
+                self.console.print(Text(f"[Design] Generating draft {number}...", style="cyan"))
+                design = await collect_response(generator, message, "Design generator", self.console)
+                if not design:
+                    raise RuntimeError("The design generator returned an empty response.")
                 design_file.write_text(design + "\n", encoding="utf-8")
-                review = await _ask(
-                    reviewer,
+                self._show_document(f"Design draft {number}", design, design_file, "cyan")
+                self.console.print(Text(f"[Design] Reviewing draft {number}...", style="yellow"))
+                review_message = (
                     f"Mounted workspace: {self.env.workspace_path}\n"
                     f"Requirements:\n{requirements}\n\n"
-                    f"Design:\n{design}",
+                    f"Design:\n{design}"
                 )
+                if feedback:
+                    review_message += f"\n\nHuman feedback this draft must address:\n{feedback}"
+                review = await collect_response(
+                    reviewer,
+                    review_message,
+                    "Design reviewer",
+                    self.console,
+                )
+                if not review:
+                    raise RuntimeError("The design reviewer returned an empty response.")
                 with review_file.open("a", encoding="utf-8") as log:
-                    log.write(f"\n## Review {iteration}\n{review}\n")
-                if review.splitlines()[0].strip() == "APPROVED":
+                    log.write(f"\n## Review {number}\n{review}\n")
+                self._show_document(f"Reviewer comments {number}", review, review_file, "yellow")
+                verdict = review.splitlines()[0].strip()
+                self.console.print(Text(f"[Design] Round {number}: {verdict}", style="yellow"))
+                if verdict == "APPROVED":
                     break
                 message = (
                     "Revise the complete design using this reviewer feedback. "
@@ -94,6 +125,7 @@ class DesignPhase:
                     f"Previous design:\n{design}\n\nReviewer feedback:\n{review}"
                 )
 
+        self.console.print(Text(f"[Design] Generator and reviewer loop complete after round {number}; awaiting your review.", style="cyan"))
         return design, review
 
     def generate(
@@ -110,8 +142,6 @@ class DesignPhase:
         feedback = design = review = ""
         while True:
             design, review = self.generate(requirements, feedback, design, review)
-            print(f"\n[Design] Review the draft at {self.artifacts_dir / 'design.md'}:\n\n{design}\n")
-            print(f"[Design] Automated review:\n{review}\n")
             if not sys.stdin.isatty():
                 return None
             try:

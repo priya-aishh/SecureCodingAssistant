@@ -30,20 +30,23 @@ class InitPhase:
                 cwd=self.workspace, capture_output=True, check=True,
             )
         status = subprocess.run(
-            ["git", "status", "--porcelain", "--", *paths],
+            ["git", "status", "--porcelain", "--untracked-files=all", "--", *paths],
             cwd=self.workspace, capture_output=True, text=True, check=True,
         )
         if status.stdout.strip():
-            raise RuntimeError("The workspace has pre-existing changes. Commit or remove them before starting a task.")
+            subprocess.run(
+                ["git", "stash", "push", "--include-untracked", "-m", "Coding assistant: before task", "--", *paths],
+                cwd=self.workspace, capture_output=True, text=True, check=True,
+            )
+            stash = subprocess.run(
+                ["git", "rev-parse", "--short", "refs/stash"],
+                cwd=self.workspace, capture_output=True, text=True, check=True,
+            ).stdout.strip()
+            print(f"[Init] Stashed existing changes as {stash}; they remain available in Git stash.")
         staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=self.workspace, check=False)
         if staged.returncode != 0:
             raise RuntimeError("The Git index has pre-existing staged changes. Commit or unstage them before starting a task.")
-        current = subprocess.run(
-            ["git", "symbolic-ref", "--short", "HEAD"],
-            cwd=self.workspace, capture_output=True, text=True, check=True,
-        ).stdout.strip()
-        if current != "main":
-            subprocess.run(["git", "switch", "main"], cwd=self.workspace, capture_output=True, check=True)
+        subprocess.run(["git", "switch", "main"], cwd=self.workspace, capture_output=True, check=True)
         base = subprocess.run(["git", "rev-parse", "--verify", "HEAD"], cwd=self.workspace, capture_output=True)
         if base.returncode != 0:
             subprocess.run(

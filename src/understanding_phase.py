@@ -2,9 +2,10 @@ import asyncio
 import sys
 from pathlib import Path
 
-from google.antigravity import Agent
+from google.antigravity import Agent, CapabilitiesConfig
 
 from config.settings import StartupFlags
+from src.agent_output import collect_response
 from src.environment import EnvironmentManager
 
 
@@ -18,11 +19,14 @@ class UnderstandingPhase:
 
     async def _elicit(self, task: str) -> str:
         instructions = self.prompt_path.read_text(encoding="utf-8")
-        config = self.env.build_sandbox_config(instructions=instructions)
+        config = self.env.build_sandbox_config(
+            instructions=instructions,
+            capabilities=CapabilitiesConfig(enable_subagents=False, enabled_tools=[]),
+            tool_log_phase="Understanding",
+        )
 
         async with Agent(config) as agent:
-            response = await agent.chat(f"Feature description: {task}")
-            return "".join([token async for token in response]).strip()
+            return await collect_response(agent, f"Feature description: {task}", "Understanding")
 
     def run(self, task: str) -> str:
         task = task.strip()

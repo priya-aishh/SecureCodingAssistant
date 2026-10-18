@@ -7,6 +7,26 @@ from google.antigravity.tools.tool_runner import ToolRunner
 from src.coding_tools import CodingTools
 
 
+def test_changed_files_include_earlier_rounds_but_exclude_generated_files(tmp_path):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+    (tmp_path / "README.md").write_text("initial\n")
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "initial"], cwd=tmp_path, check=True)
+    (tmp_path / "first.py").write_text("FIRST = 1\n")
+    (tmp_path / "second.py").write_text("SECOND = 2\n")
+    (tmp_path / "__pycache__").mkdir()
+    (tmp_path / "__pycache__" / "first.pyc").write_bytes(b"cache")
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    (artifacts / "design.md").write_text("draft\n")
+
+    assert CodingTools(tmp_path).changed_files(artifacts) == ["first.py", "second.py"]
+
+
 def test_workspace_status_ignores_git_directory_and_reports_changes(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     tools = CodingTools(tmp_path)

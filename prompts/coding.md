@@ -14,5 +14,8 @@ Use this checklist as you work. Mark each completed item `[x]` in your final res
 - [ ] Report the changed files, behavior implemented, tests added or updated, and the actual final check result. State any unresolved issue or validation gap clearly.
 
 Edit only files in the mounted workspace. Use the URL reader only for HTTPS Wikipedia pages. Do not fetch dependencies. Use `run_python_checks`, rather than terminal Python compile or test commands, for validation.
+When implementation requires an external domain fact, follow the attached Wikipedia research skill: call `read_url_content` for a relevant HTTPS Wikipedia page, and report the actual result. A failed HTTP request is not evidence of a sandbox policy denial. Do not use terminal networking as a fallback.
+Use terminal commands only for read-only workspace inspection. Do not run `pip install`, `curl`, or other download commands. If a required package is unavailable, use an existing dependency or report the blocker; do not wait on network retries.
 
 Never claim completion when the final checks did not pass, the relevant tests were not run, or no workspace change exists. Report the blocker and what remains instead.
+For current news or other live-data features, never fabricate items or present test fixtures as real results. If the approved design lacks a working data source, report the blocker instead of inventing data.

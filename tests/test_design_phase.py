@@ -13,7 +13,7 @@ class FakeEnvironment:
         self.workspace_path = workspace
         self.capabilities = []
 
-    def build_sandbox_config(self, *, instructions, capabilities, model=""):
+    def build_sandbox_config(self, *, instructions, capabilities, model="", tool_log_phase="Agent"):
         self.capabilities.append(capabilities)
         return instructions
 
@@ -72,11 +72,11 @@ def test_design_revises_until_approved(tmp_path, monkeypatch):
     assert "Cover the failure case" in messages["generator"][1]
     assert "Design:\n# Design: first draft" in messages["reviewer"][0]
     assert len(env.capabilities) == 2
+    assert all(BuiltinTools.VIEW_FILE in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.RUN_COMMAND in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.SEARCH_WEB not in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.READ_URL_CONTENT in config.enabled_tools for config in env.capabilities)
     assert all(BuiltinTools.EDIT_FILE not in config.enabled_tools for config in env.capabilities)
-    assert all(BuiltinTools.VIEW_FILE not in config.enabled_tools for config in env.capabilities)
     assert all(not config.enable_subagents for config in env.capabilities)
 
 
