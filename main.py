@@ -22,9 +22,15 @@ def main() -> None:
         help="Token count that triggers agent history compaction (default: 300000)",
     )
     parser.add_argument("--no-sandbox", dest="sandbox", action="store_false", help="Disable sandbox")
+    parser.add_argument("--mock-mode", action="store_true", help="Use local Wikipedia MCP fixtures and disable agent network and shell tools")
+    parser.add_argument("--mock-pages-dir", default="", help="Directory containing mock Wikipedia manifest.json and pages")
     args = parser.parse_args()
     if args.compaction_threshold <= 0:
         parser.error("--compaction-threshold must be a positive integer")
+    if args.mock_pages_dir and not args.mock_mode:
+        parser.error("--mock-pages-dir requires --mock-mode")
+    if args.mock_mode and not args.sandbox:
+        parser.error("--mock-mode requires sandbox mode")
 
     flags = StartupFlags(
         workspace_dir=args.workspace_dir,
@@ -34,6 +40,8 @@ def main() -> None:
         gemini_api_key=args.api_key,
         sandbox=args.sandbox,
         compaction_threshold=args.compaction_threshold,
+        mock_mode=args.mock_mode,
+        mock_pages_dir=args.mock_pages_dir,
     )
 
     task = args.prompt or (sys.stdin.read().strip() if not sys.stdin.isatty() else "")

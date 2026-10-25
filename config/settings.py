@@ -11,3 +11,5 @@ class StartupFlags:
     gemini_api_key: str = ""
     sandbox: bool = True
     compaction_threshold: int = 300_000
+    mock_mode: bool = False
+    mock_pages_dir: str = ""
