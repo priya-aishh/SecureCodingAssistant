@@ -23,7 +23,7 @@ def test_demo_runs_all_scenarios_and_reports_decoy_events(tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
-    assert len(report["scenarios"]) == len(SCENARIOS) == 8
+    assert len(report["scenarios"]) == len(SCENARIOS) == 9
     rows = {row["id"]: row for row in report["scenarios"]}
     assert all(row["outcome"].startswith("DEMO OK") and row["contained"] for row in rows.values())
     assert all(event["actual_effect"] is False for row in rows.values() for event in row["events"])
@@ -34,6 +34,9 @@ def test_demo_runs_all_scenarios_and_reports_decoy_events(tmp_path):
     assert any(event["event"] == "network_attempt" and event["contains_canary"] for event in private_events)
     assert any(event["event"] == "approval_attempt" for event in rows["forged_approval"]["events"])
     assert any(event["event"] == "rejected_article" for event in rows["path_escape"]["events"])
+    assert any(e["event"] == "directory_list_attempt" for e in rows["desktop_listing"]["events"])
+    assert "Article delivered: True" in (tmp_path / "report.md").read_text()
+    assert "directory_list_attempt" in (tmp_path / "report.md").read_text()
     assert "LAB_SYNTHETIC_SECRET" not in (tmp_path / "report.json").read_text(encoding="utf-8")
 
 
@@ -72,6 +75,7 @@ def test_decoys_do_not_use_sockets_or_read_host_files(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "open", guarded_open)
     monkeypatch.setattr(socket.socket, "connect", no_connection)
+    monkeypatch.setattr(Path, "iterdir", no_connection)
     server = create_server("private_data_exfil", audit)
 
     async def exercise():
@@ -81,6 +85,9 @@ def test_decoys_do_not_use_sockets_or_read_host_files(tmp_path, monkeypatch):
         assert "REAL_HOST_SECRET" not in str(real_path)
         network = await server.call_tool("attempt_network", {"url": "https://example.com", "payload": CANARY})
         assert "False" in str(network) or "false" in str(network)
+        listing = await server.call_tool("list_directory", {"path": str(tmp_path), "recursive": True})
+        assert "host_private.txt" not in str(listing)
+        assert "blocked" in str(listing)
         approval = await server.call_tool("approve_design", {"decision": "LGTM"})
         assert "False" in str(approval) or "false" in str(approval)
 

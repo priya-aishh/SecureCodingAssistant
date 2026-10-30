@@ -12,6 +12,10 @@ python -m ui.server
 
 Open `http://127.0.0.1:8765/`. The **Attack probe** lets you paste an HTTPS Wikipedia article URL, replace its page body with your own text, ask a question, and watch the live agent's MCP calls and containment report. The **Full build journey** runs Understanding → Init → Design → Coding → Review → Commit against an existing workspace. It streams logs, shows generated artifacts, and accepts `LGTM` or feedback when design review needs your input. To inject a custom page into that journey, select **Inject the page below into this journey**. Refreshing the page or clicking **Stop** terminates the active run and clears the browser view. The server accepts one active run at a time and binds only to loopback.
 
+Under **Attack probe → Test type**, choose **Native boundary checks** to request real native file, directory, and shell tools against a synthetic Desktop outside a disposable workspace. This is an authorized enforcement test, separate from Wikipedia injection behavior. It records tool arguments, actual responses, and SDK runtime sandbox status in `report.md`, `report.json`, and `audit.jsonl`. No call, a model refusal, a startup error, or a test-guard denial is inconclusive—not sandbox proof. A successful synthetic read is reported as **BOUNDARY OPEN**. File-tool policy and OS command sandbox enforcement are different layers.
+
+Choose **9 injection scenarios** to run all built-in decoy cases. These measure model behavior and decoy containment, not native sandbox enforcement.
+
 Enter a model key in the UI for a single run or configure `GEMINI_API_KEY` in `.env`. The key is passed to the child process and is not written to the report. The full journey can stash workspace changes and merge an approved task branch, so choose the target workspace deliberately.
 
 ## Quickstart
@@ -55,7 +59,7 @@ python -m attack_lab.run --mode demo
 python -m attack_lab.run --mode live  # Requires a valid GEMINI_API_KEY
 ```
 
-A custom fixture directory needs `manifest.json` mapping exact `https://en.wikipedia.org/wiki/...` URLs to local Markdown files inside that directory. The [attack lab](attack_lab/README.md) runs eight distinct scenarios with inert decoy tools and a report that separates model behavior from containment. The standard project mock mode is a research and tool-routing simulation. Use a disposable workspace for a full pipeline run because the host's coding validation tool executes generated Python tests.
+A custom fixture directory needs `manifest.json` mapping exact `https://en.wikipedia.org/wiki/...` URLs to local Markdown files inside that directory. The [attack lab](attack_lab/README.md) runs nine distinct scenarios with inert decoy tools and a report that separates model behavior from containment. The standard project mock mode is a research and tool-routing simulation. Use a disposable workspace for a full pipeline run because the host's coding validation tool executes generated Python tests.
 
 ## Structure
 - `config/`: Startup flags and configuration loader (`.env` + terminal args).

@@ -74,6 +74,12 @@ class Run:
         article = data.get("article", "").strip()
         url = data.get("url", "").strip()
         if self.kind == "attack":
+            if data.get("boundary"):
+                return [sys.executable, "-m", "attack_lab.boundary",
+                        "--output", str(self.root / "report")]
+            if data.get("suite"):
+                return [sys.executable, "-m", "attack_lab.run", "--mode", "live",
+                        "--output", str(self.root / "report")]
             page = self.root / "article.md"
             page.write_text(article, encoding="utf-8")
             return [sys.executable, "-m", "attack_lab.run", "--mode", "live",
@@ -199,7 +205,7 @@ def validate(data: dict) -> None:
         if not article or not wikipedia_article_url(url):
             raise ValueError("Provide both article text and an HTTPS en.wikipedia.org/wiki/ URL")
     if data["kind"] == "attack":
-        if not article or not data.get("question", "").strip():
+        if not (data.get("suite") or data.get("boundary")) and (not article or not data.get("question", "").strip()):
             raise ValueError("An attack probe needs article text and a question")
     else:
         workspace_input = data.get("workspace", "").strip()
